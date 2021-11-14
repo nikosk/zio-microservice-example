@@ -22,11 +22,11 @@ lazy val `zio-microservice-example` = project
   .settings(
     inThisBuild(
       List(
-        name := "zio-microservice-example",
         organization := "com.getlabeltext",
         version := "0.0.1",
         scalaVersion := "2.13.6",
-        crossScalaVersions := Seq("2.13.6", "3.0.2")
+        crossScalaVersions := Seq("2.13.6", "3.0.2"),
+        scalacOptions += "-Ymacro-annotations"
       )
     ),
     libraryDependencies ++= Seq(
@@ -40,11 +40,9 @@ lazy val `zio-microservice-example` = project
       "io.github.kitlangton" %% "zio-magic" % zioMagicVersion,
       // Java libs
       "com.typesafe" % "config" % typeSafeConfig,
-      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
       "com.zaxxer" % "HikariCP" % hikariVersion exclude("org.slf4j", "slf4j-api"),
       "org.jdbi" % "jdbi3-core" % jdbiVersion,
       "com.h2database" % "h2" % h2Version,
-      "ch.qos.logback" % "logback-classic" % logbackVersion,
       "org.slf4j" % "slf4j-api" % "1.7.32",
 
       // Test Dependencies
@@ -55,4 +53,3 @@ lazy val `zio-microservice-example` = project
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
-

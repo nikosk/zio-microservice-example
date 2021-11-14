@@ -6,10 +6,10 @@ import org.jdbi.v3.core.mapper.RowMapper
 import org.jdbi.v3.core.statement.StatementContext
 import org.jdbi.v3.core.{Handle, Jdbi}
 import zhttp.http._
+import zio._
 import zio.json._
-import zio.logging.{Logging, log}
-import zio.prelude.{Validation, ZValidation}
-import zio.{Chunk, Has, IO, Task, ZIO, ZLayer}
+import zio.logging._
+import zio.prelude._
 
 import java.sql.ResultSet
 import java.time.LocalDateTime
@@ -19,17 +19,19 @@ import scala.util.Try
 
 object UserDomain {
 
-  final case class UserId(id: UUID)
+  final case class UserId(value: UUID)
 
   object UserId {
-    implicit val encoder: JsonEncoder[UserId] = JsonEncoder[UUID].contramap(_.id)
+    implicit val encoder: JsonEncoder[UserId] = JsonEncoder[UUID].contramap(_.value)
+    implicit val decoder: JsonDecoder[UserId] = JsonDecoder[UUID].map(uuid => UserId(uuid))
   }
 
-  final case class Password private(password: String)
+  final case class Password private(value: String)
 
   object Password {
 
-    implicit val encoder: JsonEncoder[Password] = JsonEncoder[String].contramap(_.password)
+    implicit val encoder: JsonEncoder[Password] = JsonEncoder[String].contramap(_.value)
+    implicit val decoder: JsonDecoder[Password] = JsonDecoder[String].map(str => Password(str))
 
     def create(maybePassword: String): Validation[String, Password] =
       if (maybePassword == null) Validation.fail("Password was empty")
@@ -37,7 +39,7 @@ object UserDomain {
       else Validation.succeed(Password(maybePassword))
   }
 
-  final case class User(id: UserId, email: Email, @jsonExclude password: Password, createdAt: LocalDateTime = LocalDateTime.now(), modifiedAt: Option[LocalDateTime] = None)
+  final case class User(id: UserId, email: Email, password: Password, createdAt: LocalDateTime = LocalDateTime.now(), modifiedAt: Option[LocalDateTime] = None)
 
   object User {
     implicit val encoder: JsonEncoder[User] = DeriveJsonEncoder.gen[User]
@@ -95,11 +97,11 @@ object UserDomain {
           } else {
             ZIO.effect {
               val id = UUID.randomUUID()
-              jdbi.inTransaction[Int, Exception]((handle:Handle) => {
+              jdbi.inTransaction[Int, Exception]((handle: Handle) => {
                 handle.createUpdate("INSERT INTO users(id, email, password) VALUES (:id, :email, :password)")
                   .bind("id", id)
-                  .bind("email", email.email)
-                  .bind("password", password.password)
+                  .bind("email", email.value)
+                  .bind("password", password.value)
                   .execute()
               })
               UserId(id)
@@ -114,7 +116,7 @@ object UserDomain {
     override def findById(id: UserId): Task[Option[User]] = ZIO.effect {
       jdbi.withHandle((handle: Handle) => {
         val result = handle.createQuery("SELECT * FROM users WHERE id = :id")
-          .bind("id", id.id)
+          .bind("id", id.value)
           .map(userRowMapper)
           .findFirst()
         if (result.isEmpty) {
@@ -129,7 +131,7 @@ object UserDomain {
       ZIO.effect {
         jdbi.withHandle((handle: Handle) => {
           handle.createQuery("SELECT COUNT(*) = 0 FROM users WHERE email = :email")
-            .bind("email", email.email)
+            .bind("email", email.value)
             .map { (rs: ResultSet, col: Int, _) => rs.getBoolean(col) }
             .first()
         })
@@ -148,7 +150,7 @@ object UserDomain {
     ServiceLive
   }
 
-  val userEndpoints: Http[Logging with Has[Service], Nothing, Request, Response.HttpResponse[Any, Nothing]] = Http.collectM[Request] {
+  val userEndpoints: Http[Has[Logger[String]] with Has[Service], Nothing, Request, UHttpResponse] = Http.collectM[Request] {
     case req@Method.POST -> Root / "api" / "user" =>
       val result: ZIO[Has[UserDomain.Service] with Logging, ErrorMessage, UserDomain.User] = for {
         body <- ZIO.fromEither(Either.cond(req.getBodyAsString.isDefined, req.getBodyAsString.get, ErrorMessage("Body is empty")))

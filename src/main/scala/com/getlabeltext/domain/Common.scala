@@ -1,14 +1,15 @@
 package com.getlabeltext.domain
 
 import com.getlabeltext.system.Patterns
-import zio.json.JsonEncoder
+import zio.json.{JsonDecoder, JsonEncoder}
 import zio.prelude.Validation
 
-final case class Email private(email: String)
+final case class Email private(value: String)
 
 object Email {
 
-  implicit val encoder: JsonEncoder[Email] = JsonEncoder[String].contramap(_.email)
+  implicit val encoder: JsonEncoder[Email] = JsonEncoder[String].contramap(_.value)
+  implicit val decoder: JsonDecoder[Email] = JsonDecoder[String].map(str => Email(str))
 
   def create(maybeEmail: String): Validation[String, Email] =
     if (maybeEmail == null || maybeEmail.isEmpty) Validation.fail("Email was empty")

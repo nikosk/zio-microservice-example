@@ -26,7 +26,7 @@ object UserDomain {
     implicit val decoder: JsonDecoder[UserId] = JsonDecoder[UUID].map(uuid => UserId(uuid))
   }
 
-  final case class Password private(value: String)
+  final case class Password(value: String)
 
   object Password {
 
@@ -39,7 +39,7 @@ object UserDomain {
       else Validation.succeed(Password(maybePassword))
   }
 
-  final case class User(id: UserId, email: Email, password: Password, createdAt: LocalDateTime = LocalDateTime.now(), modifiedAt: Option[LocalDateTime] = None)
+  final case class User(id: UserId, email: Email, @jsonExclude password: Option[Password] = None, createdAt: LocalDateTime = LocalDateTime.now(), modifiedAt: Option[LocalDateTime] = None)
 
   object User {
     implicit val encoder: JsonEncoder[User] = DeriveJsonEncoder.gen[User]
@@ -78,7 +78,7 @@ object UserDomain {
         User(
           UserId(UUID.fromString(rs.getString("id"))),
           Email(rs.getString("email")),
-          Password(rs.getString("password")),
+          Some(Password(rs.getString("password"))),
           rs.getTimestamp("created_at").toLocalDateTime,
           if (rs.getTimestamp("modified_at") != null) Some(rs.getTimestamp("modified_at").toLocalDateTime) else None
         )
@@ -182,7 +182,7 @@ object UserDomain {
       } yield user
       result.fold(err => {
         Response.http(
-          Status.INTERNAL_SERVER_ERROR,
+          Status.BAD_REQUEST,
           List(Header.contentTypeJson),
           HttpData.CompleteData(Chunk.fromArray(err.toJson.getBytes(HTTP_CHARSET)))
         )

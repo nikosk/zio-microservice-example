@@ -25,7 +25,6 @@ object Settings {
 
   def dbPass(): String = config.getString("app.db.pass")
 
-  def logPath() = config.getString("app.logging.path")
 }
 
 

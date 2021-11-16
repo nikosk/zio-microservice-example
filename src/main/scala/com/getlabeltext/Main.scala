@@ -8,22 +8,22 @@ import zio._
 import zio.clock.Clock
 import zio.console.Console
 import zio.logging._
+import zio.logging.slf4j.Slf4jLogger
 import zio.magic._
-
-import java.nio.file.Path
 
 object Main extends App {
 
+  val logFormat = "[correlation-id = %s] %s"
+
   val app: Http[Logging with Has[UserDomain.Service], Nothing, Request, Response.HttpResponse[Any, Nothing]] = UserDomain.userEndpoints
 
-  val loggingLive: ZLayer[Console with Clock, Throwable, Logging] = if (Settings.debug()) {
-    Logging.console(
-      logLevel = LogLevel.Info,
-      format = LogFormat.ColoredLogFormat()
-    )
-  } else {
-    Logging.file(Path.of(Settings.logPath()))
-  }
+  val loggingLive: ZLayer[Console with Clock, Throwable, Logging] =
+    Slf4jLogger.make { (context, message) =>
+      val correlationId = LogAnnotation.CorrelationId.render(
+        context.get(LogAnnotation.CorrelationId)
+      )
+      logFormat.format(correlationId, message)
+    }
 
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = {
     Server.start(Settings.port(), app)

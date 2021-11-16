@@ -44,6 +44,7 @@ lazy val `zio-microservice-example` = project
       "org.jdbi" % "jdbi3-core" % jdbiVersion,
       "com.h2database" % "h2" % h2Version,
       "org.slf4j" % "slf4j-api" % "1.7.32",
+      "ch.qos.logback" % "logback-classic" % logbackVersion,
 
       // Test Dependencies
       "dev.zio" %% "zio-test" % zioVersion % Test,

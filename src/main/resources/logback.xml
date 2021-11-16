@@ -9,7 +9,7 @@
 
     <logger name="com.getlabeltext" level="debug"/>
     <logger name="org.jdbi.sql" level="debug"/>
-    <root level="error">
+    <root level="info">
         <appender-ref ref="CONSOLE"/>
     </root>
 </configuration>

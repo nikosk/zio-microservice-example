@@ -1,8 +1,8 @@
 package com.getlabeltext
 
 import com.getlabeltext.domain._
-import com.getlabeltext.domain.user.UserDomain._
-import com.getlabeltext.domain.user._
+import com.getlabeltext.domain.user.UserModel.{Password, User, UserId}
+import com.getlabeltext.domain.user.{UserService, UserWeb}
 import com.getlabeltext.system.ErrorMessage
 import zhttp.http.HttpData.CompleteData
 import zhttp.http._
@@ -10,7 +10,7 @@ import zhttp.test._
 import zio._
 import zio.json._
 import zio.magic._
-import zio.test.Assertion.{equalTo, hasField, isRight, isSome, not}
+import zio.test.Assertion._
 import zio.test._
 
 import java.util.UUID
@@ -21,9 +21,9 @@ object UserDomainSpec extends DefaultRunnableSpec {
 
   val user = User(UserId(UUID.randomUUID()), Email("email@example.com"), Some(Password("password")))
 
-  val app = UserDomain.userEndpoints
+  val app = UserWeb.userEndpoints
 
-  val testUserServiceHappy: ULayer[Has[Service]] = ZLayer.succeed(new UserDomain.Service {
+  val testUserServiceHappy: ULayer[Has[UserService.Service]] = ZLayer.succeed(new UserService.Service {
     override def create(email: Email, password: Password) = ZIO.succeed(user)
 
     override def findById(id: UserId) = ZIO.succeed(Some(user))
@@ -54,7 +54,7 @@ object UserDomainSpec extends DefaultRunnableSpec {
     }
   ).inject(TestLogging.layer, testUserServiceHappy)
 
-  val testUserServiceSad: ULayer[Has[Service]] = ZLayer.succeed(new UserDomain.Service {
+  val testUserServiceSad: ULayer[Has[UserService.Service]] = ZLayer.succeed(new UserService.Service {
     override def create(email: Email, password: Password) = ZIO.fail(ErrorMessage(""))
 
     override def findById(id: UserId) = ZIO.succeed(None)

@@ -1,6 +1,6 @@
 package com.getlabeltext
 
-import com.getlabeltext.domain.user.UserDomain
+import com.getlabeltext.domain.user.{UserService, UserWeb}
 import com.getlabeltext.system.{Datasource, JdbiInstance}
 import zhttp.http.{Http, Request, Response}
 import zhttp.service.Server
@@ -15,7 +15,7 @@ object Main extends App {
 
   val logFormat = "[correlation-id = %s] %s"
 
-  val app: Http[Logging with Has[UserDomain.Service], Nothing, Request, Response.HttpResponse[Any, Nothing]] = UserDomain.userEndpoints
+  val app: Http[Logging with Has[UserService.Service], Nothing, Request, Response.HttpResponse[Any, Nothing]] = UserWeb.userEndpoints
 
   val loggingLive: ZLayer[Console with Clock, Throwable, Logging] =
     Slf4jLogger.make { (context, message) =>
@@ -33,7 +33,7 @@ object Main extends App {
         loggingLive >>> Logging.withRootLoggerName("ROOT"),
         Datasource.live,
         JdbiInstance.live,
-        UserDomain.live
+        UserService.live
       )
       .exitCode
   }
